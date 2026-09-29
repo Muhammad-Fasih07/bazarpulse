@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Brand {
+  id               String       @id @default(auto()) @map("_id") @db.ObjectId
+  name             String
+  slug             String       @unique
+  logoUrl          String
+  websiteUrl       String
+  platform         String       @default("SHOPIFY") // SHOPIFY, CUSTOM_REST, SCRAPER, MAGENTO_HTML
+  productsEndpoint String?
+  saleEndpoint     String?
+  isFeatured       Boolean      @default(false)
+  activeDealsCount Int          @default(0)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  products         Product[]
+  salesEvents      SaleEvent[]
+  scrapeLogs       ScrapeLog[]
+}
+
+model Product {
+  id                 String         @id @default(auto()) @map("_id") @db.ObjectId
+  brandId            String         @db.ObjectId
+  brand              Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  externalId         String?        // Shopify ID or external product code
+  title              String
+  slug               String
+  handle             String?
+  description        String?
+  category           String         // Unstitched, Ready to Wear, Kurta, Western, Footwear, Fragrances, Kids, Winter Wear, Accessories
+  subCategory        String?        // 3-Piece Lawn, Khussa, Polo Shirt, Co-ords, etc.
+  gender             String         // WOMEN, MEN, KIDS, UNISEX
+  originalPrice      Float
+  salePrice          Float
+  discountPercentage Int
+  savingsAmount      Float
+  currency           String         @default("PKR")
+  inStock            Boolean        @default(true)
+  inventoryQuantity  Int?
+  productUrl         String
+  primaryImageUrl    String
+  imageGallery       String?        // JSON string array of extra image URLs
+  sizesAvailable     String?        // JSON string array of available sizes
+  fabric             String?        // Lawn, Cotton, Silk, Khaddar, Denim, etc.
+  tags               String?        // Comma-separated tags
+  isHotDeal          Boolean        @default(false)
+  isTrending         Boolean        @default(false)
+  scrapedAt          DateTime       @default(now())
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  priceHistory       PriceHistory[]
+
+  @@index([brandId])
+  @@index([gender])
+  @@index([category])
+  @@index([discountPercentage])
+  @@index([salePrice])
+  @@index([inStock])
+  @@index([scrapedAt])
+}
+
+model PriceHistory {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId          String   @db.ObjectId
+  product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  price              Float
+  originalPrice      Float
+  discountPercentage Int
+  recordedAt         DateTime @default(now())
+
+  @@index([productId])
+  @@index([recordedAt])
+}
+
+model SaleEvent {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  brandId      String    @db.ObjectId
+  brand        Brand     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?
+  discountUpTo Int       // e.g. 50, 70
+  badgeText    String?   // "Flat 50% Off", "Summer Clearance", "Blessed Friday"
+  bannerUrl    String?
+  saleUrl      String?
+  startDate    DateTime?
+  endDate      DateTime?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+
+  @@index([brandId])
+  @@index([isActive])
+}
+
+model ScrapeLog {
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  brandId         String?   @db.ObjectId
+  brand           Brand?    @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  status          String    // "SUCCESS", "FAILED", "RUNNING"
+  itemsScraped    Int       @default(0)
+  itemsDiscounted Int       @default(0)
+  durationMs      Int       @default(0)
+  error           String?
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+
+  @@index([startedAt])
+}
