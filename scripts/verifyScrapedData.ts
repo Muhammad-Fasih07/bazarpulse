@@ -62,7 +62,8 @@ async function verifyItem(deal: any): Promise<{ linkOk: boolean; imgOk: boolean;
         maxRedirects: 5,
         validateStatus: (status) => status < 400,
       });
-      const contentType = imgRes.headers['content-type'] || '';
+      const rawContentType = imgRes.headers['content-type'];
+      const contentType = typeof rawContentType === 'string' ? rawContentType : String(rawContentType || '');
       imgOk = imgRes.status === 200 && (contentType.startsWith('image/') || contentType.includes('octet-stream'));
       if (!imgOk) {
         reasons.push(`Image invalid content-type: ${contentType}`);
