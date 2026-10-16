@@ -132,14 +132,34 @@ export function normalizeShopifyProduct(
 
   const savingsAmount = Math.max(0, correspondingOriginalPrice - minSalePrice);
 
-  // Images
+  // Images: Extract real product images, filtering out swatches or low-res thumbnails
   const rawImages = Array.isArray(raw.images) ? raw.images : [];
   const imageUrls: string[] = rawImages
-    .map((img: any) => (typeof img === 'string' ? img : img?.src || ''))
-    .filter(Boolean);
+    .map((img: any) => {
+      let src = typeof img === 'string' ? img : img?.src || '';
+      if (!src) return '';
+      if (src.startsWith('//')) src = `https:${src}`;
+      return src;
+    })
+    .filter((src: string) => {
+      if (!src) return false;
+      const lower = src.toLowerCase();
+      // Filter out swatch icons or tracking pixels
+      if (lower.includes('_swatch') || lower.includes('_thumb') || lower.includes('pixel') || lower.includes('blank.gif')) {
+        return false;
+      }
+      return true;
+    });
 
-  const primaryImageUrl = imageUrls[0] || (raw.image ? raw.image.src : '') || 
-    'https://images.unsplash.com/photo-1544441893-675973e31985?w=600&auto=format&fit=crop&q=80';
+  let rawPrimary = raw.image ? (typeof raw.image === 'string' ? raw.image : raw.image.src || '') : '';
+  if (rawPrimary.startsWith('//')) rawPrimary = `https:${rawPrimary}`;
+
+  const primaryImageUrl = imageUrls[0] || rawPrimary || '';
+
+  // Strictest Quality Rule: If product has NO genuine image, drop it. NEVER guess or assign random stock images.
+  if (!primaryImageUrl || primaryImageUrl.includes('unsplash.com')) {
+    return null;
+  }
 
   // Direct Product URL
   const productUrl = raw.url

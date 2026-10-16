@@ -29,15 +29,15 @@ export const PAKISTANI_BRANDS_CONFIG: BrandScraperConfig[] = [
     slug: 'sapphire',
     categoryTag: 'Eastern & Pret',
     logoUrl: 'https://images.unsplash.com/photo-1544441893-675973e31985?w=128&auto=format&fit=crop&q=80',
-    websiteUrl: 'https://pk.sapphireonline.com.pk',
+    websiteUrl: 'https://pk.sapphireonline.pk',
     platform: 'SHOPIFY',
-    productsEndpoint: 'https://pk.sapphireonline.com.pk/products.json',
-    saleEndpoint: 'https://pk.sapphireonline.com.pk/collections/special-offers/products.json',
+    productsEndpoint: 'https://pk.sapphireonline.pk/products.json',
+    saleEndpoint: 'https://pk.sapphireonline.pk/collections/special-offers/products.json',
     collectionEndpoints: [
-      'https://pk.sapphireonline.com.pk/collections/woman-unstitched/products.json',
-      'https://pk.sapphireonline.com.pk/collections/ready-to-wear/products.json',
-      'https://pk.sapphireonline.com.pk/collections/man/products.json',
-      'https://pk.sapphireonline.com.pk/collections/kids/products.json'
+      'https://pk.sapphireonline.pk/collections/woman-unstitched/products.json',
+      'https://pk.sapphireonline.pk/collections/ready-to-wear/products.json',
+      'https://pk.sapphireonline.pk/collections/man/products.json',
+      'https://pk.sapphireonline.pk/collections/kids/products.json'
     ],
     isFeatured: true,
   },
@@ -69,9 +69,16 @@ export const PAKISTANI_BRANDS_CONFIG: BrandScraperConfig[] = [
     categoryTag: 'Eastern & Pret',
     logoUrl: 'https://images.unsplash.com/photo-1579965342575-16428a7c8881?w=128&auto=format&fit=crop&q=80',
     websiteUrl: 'https://pk.khaadi.com',
-    platform: 'SHOPIFY',
-    productsEndpoint: 'https://pk.khaadi.com/products.json',
-    saleEndpoint: 'https://pk.khaadi.com/collections/sale/products.json',
+    platform: 'HTML_CHEERIO',
+    saleEndpoint: 'https://pk.khaadi.com/sale/',
+    selectors: {
+      productCard: '.product, .product-tile',
+      title: '.pdp-link, .product-name, a.title',
+      productUrl: '.pdp-link a, .product-name a, a.thumb-link',
+      image: '.tile-image, .primary-image, img',
+      salePrice: '.sales .value, .sale-price, .price .sales',
+      originalPrice: '.strike-through .value, .standard-price, .strike-through',
+    },
     isFeatured: true,
   },
 
@@ -481,6 +488,92 @@ export const PAKISTANI_BRANDS_CONFIG: BrandScraperConfig[] = [
     platform: 'SHOPIFY',
     productsEndpoint: 'https://asimjofa.com/products.json',
     saleEndpoint: 'https://asimjofa.com/collections/sale/products.json',
+    isFeatured: true,
+  },
+
+  // 33. Lama Retail
+  {
+    id: 'lama-retail',
+    name: 'Lama Retail',
+    slug: 'lama-retail',
+    categoryTag: 'Urban & Contemporary',
+    logoUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=128&auto=format&fit=crop&q=80',
+    websiteUrl: 'https://lamaretail.com',
+    platform: 'SHOPIFY',
+    productsEndpoint: 'https://lamaretail.com/products.json',
+    saleEndpoint: 'https://lamaretail.com/collections/30-percent/products.json',
+    collectionEndpoints: [
+      'https://lamaretail.com/collections/10-percent/products.json',
+      'https://lamaretail.com/collections/60-percent/products.json',
+      'https://lamaretail.com/collections/accessories/products.json'
+    ],
+    isFeatured: true,
+  },
+
+  // 34. Charcoal
+  {
+    id: 'charcoal',
+    name: 'Charcoal',
+    slug: 'charcoal',
+    categoryTag: 'Men Formal & Casual',
+    logoUrl: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=128&auto=format&fit=crop&q=80',
+    websiteUrl: 'https://charcoal.com.pk',
+    platform: 'SHOPIFY',
+    productsEndpoint: 'https://charcoal.com.pk/products.json',
+    collectionEndpoints: [
+      'https://charcoal.com.pk/collections/all-casual-shirts/products.json',
+      'https://charcoal.com.pk/collections/all-pants/products.json',
+      'https://charcoal.com.pk/collections/all-formals/products.json'
+    ],
+    isFeatured: true,
+    defaultGender: 'MEN',
+  },
+
+  // 35. Monark
+  {
+    id: 'monark',
+    name: 'Monark',
+    slug: 'monark',
+    categoryTag: 'Men Smart Casual & Suits',
+    logoUrl: 'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?w=128&auto=format&fit=crop&q=80',
+    websiteUrl: 'https://monark.com.pk',
+    platform: 'SHOPIFY',
+    productsEndpoint: 'https://monark.com.pk/products.json',
+    saleEndpoint: 'https://monark.com.pk/collections/sale/products.json',
+    isFeatured: true,
+    defaultGender: 'MEN',
+  },
+
+  // 36. Fitted
+  {
+    id: 'fitted',
+    name: 'Fitted',
+    slug: 'fitted',
+    categoryTag: 'Modern Menswear & Athleisure',
+    logoUrl: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=128&auto=format&fit=crop&q=80',
+    websiteUrl: 'https://fittedshop.com',
+    platform: 'SHOPIFY',
+    productsEndpoint: 'https://fittedshop.com/products.json',
+    saleEndpoint: 'https://fittedshop.com/collections/sale/products.json',
+    isFeatured: true,
+    defaultGender: 'MEN',
+  },
+
+  // 37. Brackets
+  {
+    id: 'brackets',
+    name: 'Brackets',
+    slug: 'brackets',
+    categoryTag: 'Minimalist & Casual Streetwear',
+    logoUrl: 'https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=128&auto=format&fit=crop&q=80',
+    websiteUrl: 'https://brackets.pk',
+    platform: 'SHOPIFY',
+    productsEndpoint: 'https://brackets.pk/products.json',
+    collectionEndpoints: [
+      'https://brackets.pk/collections/10-discount/products.json',
+      'https://brackets.pk/collections/chinos/products.json',
+      'https://brackets.pk/collections/casual-shirts-collection/products.json'
+    ],
     isFeatured: true,
   }
 ];

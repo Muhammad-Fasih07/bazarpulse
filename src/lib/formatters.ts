@@ -56,42 +56,8 @@ export function buildProductAffiliateUrl(originalUrl: string): string {
   try {
     let targetUrl = originalUrl;
 
-    // Safety fallback for sample/mock product handles to ensure zero 404s
-    const sampleHandles = [
-      'silk-tunic-emerald', 'azure-bloom-3pc', 'jacquard-kurti', 'velvet-khussa',
-      'varsity-bomber-jacket', 'relaxed-cargo-jeans', 'womens-cropped-hoodie', 'juniors-windbreaker',
-      'ruby-crimson-3pc', 'chapter2-kurta-ochre', 'printed-lawn-coord', 'kameez-shalwar-navy',
-      'jamawar-waistcoat', 'janisa-perfume', 'marigold-bliss-3pc', 'salt-denim-jacket',
-      'velvet-shawl-3pc', 'muzlin-3pc-lawn', 'mahay-coord-ivory', 'baby-frock-pink',
-      'boys-dino-tracksuit', 'silk-peplum-kurti', 'cambric-2pc-bloom', 'quilted-clutch'
-    ];
-
-    if (sampleHandles.some((h) => targetUrl.includes(h))) {
-      const parsed = new URL(targetUrl);
-      if (parsed.hostname.includes('sapphire')) {
-        targetUrl = 'https://pk.sapphireonline.com.pk/collections/special-offers';
-      } else if (parsed.hostname.includes('outfitters')) {
-        targetUrl = 'https://outfitters.com.pk/collections/sale';
-      } else if (parsed.hostname.includes('khaadi')) {
-        targetUrl = 'https://pk.khaadi.com/collections/sale';
-      } else if (parsed.hostname.includes('junaidjamshed')) {
-        targetUrl = 'https://www.junaidjamshed.com/collections/promotions';
-      } else if (parsed.hostname.includes('gulahmed')) {
-        targetUrl = 'https://www.gulahmedshop.com/collections/sale';
-      } else if (parsed.hostname.includes('nishatlinen')) {
-        targetUrl = 'https://nishatlinen.com/collections/sale';
-      } else if (parsed.hostname.includes('sanasafinaz')) {
-        targetUrl = 'https://www.sanasafinaz.com/collections/sale';
-      } else if (parsed.hostname.includes('bachaaparty')) {
-        targetUrl = 'https://bachaaparty.com/collections/clearance-sale';
-      } else if (parsed.hostname.includes('ethnic')) {
-        targetUrl = 'https://ethnic.pk/collections/sale';
-      } else if (parsed.hostname.includes('limelight')) {
-        targetUrl = 'https://www.limelight.pk/collections/sale';
-      }
-    }
-
-    const url = new URL(targetUrl);
+    // Preserve original product link directly and attach UTM parameters for aggregator analytics
+    const url = new URL(originalUrl);
     url.searchParams.set('utm_source', 'bazaarpulse');
     url.searchParams.set('utm_medium', 'deal_aggregator');
     url.searchParams.set('utm_campaign', 'sales_finder');

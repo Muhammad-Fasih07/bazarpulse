@@ -1,4 +1,3 @@
-import axios from 'axios';
 import * as cheerio from 'cheerio';
 import { BrandScraperConfig } from './brandConfigs';
 import {
@@ -7,10 +6,8 @@ import {
   inferCategoryAndSubcategory,
   inferFabric,
 } from './normalizer';
-
-const DEFAULT_USER_AGENT =
-  process.env.SCRAPER_USER_AGENT ||
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 BazaarPulse/1.0';
+import { safeFetch } from './httpClient';
+import { validateProductPayload } from './validator';
 
 export async function scrapeHtmlBrand(
   brandConfig: BrandScraperConfig
@@ -25,15 +22,13 @@ export async function scrapeHtmlBrand(
   }
 
   try {
-    const { data: html } = await axios.get(url, {
-      headers: {
-        'User-Agent': DEFAULT_USER_AGENT,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
+    const response = await safeFetch<string>(url, {
       timeout: 15000,
+      retries: 2,
+      retryDelayMs: 1500,
     });
 
+    const html = response.data;
     const $ = cheerio.load(html);
 
     $(selectors.productCard).each((_, el) => {
@@ -41,21 +36,38 @@ export async function scrapeHtmlBrand(
         const titleEl = $(el).find(selectors.title);
         const title = titleEl.text().trim();
 
-        let productUrl = $(el).find(selectors.productUrl).attr('href') || titleEl.attr('href') || '';
-        if (productUrl.startsWith('/')) {
-          const origin = new URL(brandConfig.websiteUrl).origin;
-          productUrl = `${origin}${productUrl}`;
+        let rawHref = $(el).find(selectors.productUrl).attr('href') || titleEl.attr('href') || '';
+        let productUrl = '';
+        if (rawHref) {
+          if (rawHref.startsWith('http')) {
+            productUrl = rawHref;
+          } else {
+            const origin = new URL(brandConfig.websiteUrl).origin;
+            productUrl = `${origin}${rawHref.startsWith('/') ? '' : '/'}${rawHref}`;
+          }
         }
 
+        // Comprehensive image discovery: checking lazy-load attributes and picture tags
         const imgEl = $(el).find(selectors.image);
         let imageUrl =
-          imgEl.attr('src') ||
           imgEl.attr('data-src') ||
-          imgEl.attr('srcset')?.split(' ')[0] ||
-          'https://images.unsplash.com/photo-1544441893-675973e31985?w=600&auto=format&fit=crop&q=80';
+          imgEl.attr('data-original') ||
+          imgEl.attr('data-lazy-src') ||
+          imgEl.attr('src') ||
+          imgEl.attr('data-srcset')?.split(',')[0]?.trim().split(' ')[0] ||
+          imgEl.attr('srcset')?.split(',')[0]?.trim().split(' ')[0] ||
+          '';
 
         if (imageUrl.startsWith('//')) {
           imageUrl = `https:${imageUrl}`;
+        } else if (imageUrl.startsWith('/')) {
+          const origin = new URL(brandConfig.websiteUrl).origin;
+          imageUrl = `${origin}${imageUrl}`;
+        }
+
+        // Zero-Fake-Image policy: Drop item if real image cannot be extracted
+        if (!imageUrl || imageUrl.includes('unsplash.com') || imageUrl.includes('pixel') || imageUrl.includes('blank.gif')) {
+          return;
         }
 
         // Numeric price sanitization
@@ -72,7 +84,7 @@ export async function scrapeHtmlBrand(
             ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
             : 0;
 
-        // Skip non-discounted items if this is a sale scraper
+        // Skip non-discounted items
         if (discountPercentage <= 0) return;
 
         const savingsAmount = Math.max(0, originalPrice - salePrice);
@@ -84,7 +96,7 @@ export async function scrapeHtmlBrand(
         const cleanHandle = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
         const slug = `${brandConfig.slug}-${cleanHandle}`;
 
-        products.push({
+        const payload: NormalizedProductPayload = {
           externalId: slug,
           title,
           slug,
@@ -108,13 +120,18 @@ export async function scrapeHtmlBrand(
           tags: [brandConfig.name, category, `${discountPercentage}% OFF`],
           isHotDeal: discountPercentage >= 50,
           isTrending: discountPercentage >= 40,
-        });
+        };
+
+        const validation = validateProductPayload(payload, brandConfig);
+        if (validation.isValid) {
+          products.push(payload);
+        }
       } catch (err) {
         // Continue to next item on single item failure
       }
     });
 
-    console.log(`[HTML Scraper] Extracted ${products.length} discounted products from ${brandConfig.name}`);
+    console.log(`[HTML Scraper] Extracted ${products.length} validated discounted products from ${brandConfig.name}`);
     return products;
   } catch (error: any) {
     console.error(`[HTML Scraper Error] Failed to scrape ${brandConfig.name}:`, error?.message);
