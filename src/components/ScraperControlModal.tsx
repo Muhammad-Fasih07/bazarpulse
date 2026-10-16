@@ -17,37 +17,77 @@ export const ScraperControlModal: React.FC<ScraperControlModalProps> = ({
   const [running, setRunning] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [brandResults, setBrandResults] = useState<any[]>([]);
+  const [errorsList, setErrorsList] = useState<{ brand: string; error: string }[]>([]);
 
   if (!isOpen) return null;
 
   const handleStartScrape = async () => {
     setRunning(true);
     setStatus('idle');
-    setLogs(['⚡ Initializing BazaarPulse Ingestion Scraper Pipeline...']);
+    setBrandResults([]);
+    setErrorsList([]);
+    setLogs([
+      `[${new Date().toLocaleTimeString()}] ⚡ Initializing BazaarPulse Scraper Pipeline...`,
+      `[${new Date().toLocaleTimeString()}] 🌐 Connecting to configured fashion brands...`,
+    ]);
+
+    // Poll live scrape logs while the pipeline executes
+    const logPoller = setInterval(async () => {
+      try {
+        const res = await fetch('/api/scrape');
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          const recent = json.data.slice(0, 5);
+          setLogs((prev) => {
+            const newEntries = recent.map(
+              (item: any) =>
+                `[${new Date(item.startedAt).toLocaleTimeString()}] ${item.brand?.name || 'Brand'}: ${
+                  item.status === 'SUCCESS'
+                    ? `✅ Scraped ${item.itemsDiscounted} deals (${item.durationMs}ms)`
+                    : item.status === 'RUNNING'
+                    ? `⏳ In progress...`
+                    : `❌ Failed: ${item.error || 'Unknown error'}`
+                }`
+            );
+            return Array.from(new Set([...prev, ...newEntries])).slice(-30);
+          });
+        }
+      } catch {}
+    }, 3000);
 
     try {
-      setLogs((prev) => [...prev, '🌐 Connecting to 10 Pakistani brand endpoints (Shopify)...']);
-      
       const res = await fetch('/api/scrape', { method: 'POST' });
       const data = await res.json();
+      clearInterval(logPoller);
 
       if (data.success && data.data) {
+        const summary = data.data;
+        setBrandResults(summary.brandResults || []);
+        setErrorsList(summary.errors || []);
+
         setLogs((prev) => [
           ...prev,
-          `✅ Ingestion complete in ${data.data.durationSeconds ?? 0}s`,
-          `📦 Total Deals Found: ${data.data.totalDealsFound ?? 0}`,
-          `🔥 New Deals Added: ${data.data.totalNewDeals ?? 0}`,
-          `🔄 Updated Deals: ${data.data.totalUpdatedDeals ?? 0}`,
-          `📉 Price Changes Tracked: ${data.data.totalPriceChanges ?? 0}`,
+          `======================================================`,
+          `[${new Date().toLocaleTimeString()}] 🏁 Scraping Pipeline Completed in ${summary.durationSeconds ?? 0}s`,
+          `📦 Total Deals Discovered: ${summary.totalDealsFound ?? 0}`,
+          `✨ New Deals Added: ${summary.totalNewDeals ?? 0}`,
+          `🔄 Updated Deals: ${summary.totalUpdatedDeals ?? 0}`,
+          `📉 Price Fluctuations: ${summary.totalPriceChanges ?? 0}`,
+          summary.errors?.length > 0
+            ? `⚠️ ${summary.errors.length} brand(s) experienced issues.`
+            : `🎉 All brands completed successfully!`,
+          `======================================================`,
         ]);
         setStatus('success');
         onScrapeCompleted();
       } else {
-        setLogs((prev) => [...prev, `❌ Error: ${data.error}`]);
+        setLogs((prev) => [...prev, `❌ Error: ${data.error || 'Scraper execution error'}`]);
         setStatus('error');
       }
     } catch (err: any) {
-      setLogs((prev) => [...prev, `❌ Network Error: ${err.message}`]);
+      clearInterval(logPoller);
+      setLogs((prev) => [...prev, `❌ Network Failure: ${err.message}`]);
       setStatus('error');
     } finally {
       setRunning(false);
@@ -133,6 +173,42 @@ export const ScraperControlModal: React.FC<ScraperControlModalProps> = ({
               )}
             </div>
           </div>
+
+          {/* Per-Brand Execution Breakdown */}
+          {brandResults.length > 0 && (
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              <h4 className="text-xs font-bold text-slate-800">Brands Processed</h4>
+              <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                {brandResults.map((b, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-200 text-xs"
+                  >
+                    <span className="font-bold text-slate-800">{b.brandName}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-700 font-extrabold">{b.totalProcessed} deals</span>
+                      <span className="text-slate-400">({b.newDealsCount} new)</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Errors List */}
+          {errorsList.length > 0 && (
+            <div className="p-3 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800 space-y-1">
+              <span className="font-bold flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                Issues Encountered:
+              </span>
+              {errorsList.map((err, idx) => (
+                <div key={idx} className="text-[11px]">
+                  • <span className="font-semibold">{err.brand}</span>: {err.error}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Footer */}

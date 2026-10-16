@@ -34,7 +34,7 @@ async function verifyItem(deal: any): Promise<{ linkOk: boolean; imgOk: boolean;
   // 2. Verify Product Link
   try {
     const linkRes = await axios.get(deal.productUrl, {
-      timeout: 8000,
+      timeout: 15000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
       },
